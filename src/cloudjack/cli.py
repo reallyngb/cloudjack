@@ -14,6 +14,7 @@ from cloudjack.graph import build_graph
 from cloudjack.paths import find_paths
 from cloudjack.risk import score_path
 from cloudjack.remediate import generate_remediated_account
+from cloudjack.report import generate_json_report, generate_html_report
 
 app = typer.Typer(
     name="cloudjack",
@@ -46,8 +47,9 @@ def scan(
     start: Annotated[str, typer.Option("--start", "-s", help="Starting identity ARN")],
     target: Annotated[str, typer.Option("--target", "-t", help="Target resource ARN")],
     remediate: Annotated[bool, typer.Option("--remediate", "-r", help="Generate a remediated JSON file")] = False,
+    report: Annotated[bool, typer.Option("--report", help="Generate JSON and HTML reports")] = False,
 ) -> None:
-    """Scan for attack paths, score risk, and optionally generate remediations."""
+    """Scan for attack paths, score risk, and optionally generate remediations/reports."""
     try:
         account = load_account(file)
     except CloudJackLoadError as e:
@@ -87,9 +89,20 @@ def scan(
         console.print(table)
         console.print(f"Confidence: [bold]{path.confidence}[/bold]\n")
 
-        if remediate:
-            rem_account = generate_remediated_account(account, path)
-            out_path = Path(file).with_name(Path(file).stem + "_remediated.json")
-            with open(out_path, "w", encoding="utf-8") as f:
-                json.dump(rem_account.model_dump(), f, indent=2)
-            console.print(Panel(f"Remediation written to [bold]{out_path}[/bold]\nRun the scan again against this file to verify the path is closed.", title="Remediation", border_style="green"))
+    if remediate:
+        rem_account = generate_remediated_account(account, paths[0])
+        out_path = Path(file).with_name(Path(file).stem + "_remediated.json")
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(rem_account.model_dump(), f, indent=2)
+        console.print(Panel(f"Remediation written to [bold]{out_path}[/bold]\nRun the scan again against this file to verify the path is closed.", title="Remediation", border_style="green"))
+
+    if report:
+        # Generate JSON report
+        json_path = "findings.json"
+        generate_json_report(paths, json_path)
+        
+        # Generate HTML report
+        html_path = "report.html"
+        generate_html_report(account, graph, paths, html_path)
+        
+        console.print(Panel(f"Reports generated:\n  - [bold]{json_path}[/bold]\n  - [bold]{html_path}[/bold]\nOpen the HTML file in your browser to view the interactive report.", title="Reporting", border_style="blue"))

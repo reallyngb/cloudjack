@@ -1,0 +1,117 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudJack Report</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: auto; }
+        h1 { color: #4a90e2; border-bottom: 2px solid #333; padding-bottom: 10px; }
+        .header-card {
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card {
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .risk-score { font-size: 3em; font-weight: bold; margin: 0; }
+        .critical { color: #ff4d4d; }
+        .high { color: #f5a623; }
+        .medium { color: #f8e71c; }
+        .low { color: #50e3c2; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #333; }
+        th { background: #2a2a2a; color: #a0a0a0; font-weight: 600; }
+        .evidence { color: #888; font-style: italic; font-size: 0.9em; }
+        #graph-container { width: 100%; height: 600px; border: 1px solid #333; border-radius: 8px; }
+        .tag {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+            background: #333;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-card">
+            <h1>CloudJack Attack Path Report</h1>
+            <p class="tag">Synthetic Data Only - Not for Production</p>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h2>Finding Details</h2>
+                <p><strong>Start Identity:</strong> {{ start_identity }}</p>
+                <p><strong>Target Resource:</strong> {{ target_resource }}</p>
+                <p><strong>Confidence:</strong> <span class="tag">{{ confidence }}</span></p>
+            </div>
+            
+            <div class="card">
+                <h2>Risk Score</h2>
+                {% if risk %}
+                    {% set cls = 'critical' if risk.total >= 80 else ('high' if risk.total >= 60 else ('medium' if risk.total >= 40 else 'low')) %}
+                    <p class="risk-score {{ cls }}">{{ risk.total }}/100</p>
+                    <p>{{ risk.explanation }}</p>
+                {% else %}
+                    <p class="risk-score low">0/100</p>
+                    <p>No risk calculated.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if steps %}
+        <div class="card" style="margin-top: 20px;">
+            <h2>Attack Path Evidence</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Step</th>
+                        <th>Source</th>
+                        <th>Action</th>
+                        <th>Target</th>
+                        <th>Evidence</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for step in steps %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ step.source }}</td>
+                        <td><code>{{ step.action }}</code></td>
+                        <td>{{ step.target }}</td>
+                        <td class="evidence">{{ step.evidence }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <div class="card" style="margin-top: 20px;">
+            <h2>Attack Path Graph</h2>
+            <p>Red nodes and edges represent the attack path.</p>
+            <div id="graph-container">
+                {{ graph_html | safe }}
+            </div>
+        </div>
+    </div>
+</body>
+</html>
