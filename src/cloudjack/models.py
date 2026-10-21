@@ -1,4 +1,4 @@
-"""Pydantic models for AWS IAM data ingestion."""
+"""Pydantic models for AWS IAM data ingestion and attack paths."""
 
 from typing import Any, Literal
 from pydantic import BaseModel, Field, field_validator
@@ -47,7 +47,6 @@ class InlinePolicy(BaseModel):
 
 
 class IamIdentity(BaseModel):
-    """Base model for Users and Roles."""
     name: str
     arn: str
     inline_policies: dict[str, PolicyDocument] = Field(default_factory=dict)
@@ -79,3 +78,21 @@ class Account(BaseModel):
 
     def get_identity(self, name: str) -> IamIdentity | None:
         return self.users.get(name) or self.roles.get(name)
+
+
+# --- Attack Path Models ---
+
+class AttackStep(BaseModel):
+    """A single hop in an attack path."""
+    source: str
+    action: str
+    target: str
+    evidence: str
+
+
+class AttackPath(BaseModel):
+    """A complete path from a starting identity to a target."""
+    start_identity: str
+    target_resource: str
+    steps: list[AttackStep]
+    confidence: Literal["theoretical", "policy_supported", "validated"] = "policy_supported"
