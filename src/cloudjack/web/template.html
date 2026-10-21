@@ -1,208 +1,77 @@
-﻿<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CloudJack Report</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #0d1117; /* Darker, more professional */
-            color: #c9d1d9;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
+{
+  "users": {
+    "intern": {
+      "name": "intern",
+      "arn": "arn:aws:iam::123456789012:user/intern",
+      "inline_policies": {
+        "intern-policy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": null,
+              "Effect": "Allow",
+              "Action": [
+                "iam:AttachUserPolicy"
+              ],
+              "NotAction": null,
+              "Resource": [
+                "*"
+              ],
+              "NotResource": null,
+              "Condition": null,
+              "Principal": null
+            },
+            {
+              "Sid": null,
+              "Effect": "Allow",
+              "Action": [
+                "s3:GetObject"
+              ],
+              "NotAction": null,
+              "Resource": [
+                "arn:aws:s3:::public-data/*"
+              ],
+              "NotResource": null,
+              "Condition": null,
+              "Principal": null
+            }
+          ]
         }
-        .container { max-width: 1400px; margin: auto; flex: 1; width: 100%; }
-        h1 { color: #58a6ff; border-bottom: 1px solid #30363d; padding-bottom: 10px; font-weight: 600; }
-        .header-card {
-            background: #161b22;
-            padding: 20px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            border: 1px solid #30363d;
+      },
+      "managed_policies": []
+    },
+    "admin": {
+      "name": "admin",
+      "arn": "arn:aws:iam::123456789012:user/admin",
+      "inline_policies": {},
+      "managed_policies": [
+        {
+          "Version": "2012-10-17",
+          "Statement": {
+            "Sid": null,
+            "Effect": "Deny",
+            "Action": [
+              "*"
+            ],
+            "NotAction": null,
+            "Resource": [
+              "*"
+            ],
+            "NotResource": null,
+            "Condition": null,
+            "Principal": null
+          }
         }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .card {
-            background: #161b22;
-            padding: 20px;
-            border-radius: 6px;
-            border: 1px solid #30363d;
-        }
-        .risk-score { font-size: 3em; font-weight: bold; margin: 0; }
-        .critical { color: #f85149; }
-        .high { color: #db6d28; }
-        .medium { color: #d29922; }
-        .low { color: #3fb950; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.9em; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #30363d; }
-        th { background: #21262d; color: #8b949e; font-weight: 600; }
-        .evidence { color: #8b949e; font-style: italic; }
-        
-        /* Graph Container */
-        #graph-frame {
-            width: 100%;
-            height: 600px;
-            border: 1px solid #30363d;
-            border-radius: 6px;
-            background: #0d1117;
-            display: block;
-            margin-top: 15px;
-        }
-
-        /* Legend Styles */
-        .legend-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            background: #21262d;
-            padding: 15px;
-            border-radius: 6px;
-            margin-bottom: 15px;
-            font-size: 0.85em;
-            border: 1px solid #30363d;
-            align-items: center;
-        }
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: #c9d1d9;
-        }
-        .legend-color {
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            display: inline-block;
-        }
-        .legend-shape { width: 14px; height: 14px; display: inline-block; }
-        .legend-line { width: 24px; height: 2px; background: #8b949e; display: inline-block; margin: 0 4px; }
-        .legend-line.dashed { border-top: 2px dashed #f85149; background: transparent; }
-        .legend-line.solid { background: #8b949e; }
-
-        .tag {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.75em;
-            font-weight: 600;
-            background: #21262d;
-            color: #c9d1d9;
-            border: 1px solid #30363d;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        /* Footer */
-        footer {
-            text-align: center;
-            padding: 20px 0;
-            margin-top: 40px;
-            color: #8b949e;
-            font-size: 0.85em;
-            border-top: 1px solid #30363d;
-        }
-        footer a {
-            color: #58a6ff;
-            text-decoration: none;
-            font-weight: 600;
-        }
-        footer a:hover { text-decoration: underline; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header-card">
-            <h1>CloudJack Attack Path Report</h1>
-            <p class="tag">Synthetic Data Only - Not for Production</p>
-        </div>
-
-        <div class="grid">
-            <div class="card">
-                <h2>Finding Details</h2>
-                <p><strong>Start Identity:</strong> <code style="color:#58a6ff;">{{ start_identity }}</code></p>
-                <p><strong>Target Resource:</strong> <code style="color:#58a6ff;">{{ target_resource }}</code></p>
-                <p><strong>Confidence:</strong> <span class="tag">{{ confidence }}</span></p>
-            </div>
-
-            <div class="card">
-                <h2>Risk Score</h2>
-                {% if risk %}
-                    {% set cls = 'critical' if risk.total >= 80 else ('high' if risk.total >= 60 else ('medium' if risk.total >= 40 else 'low')) %}
-                    <p class="risk-score {{ cls }}">{{ risk.total }}/100</p>
-                    <p style="color: #8b949e;">{{ risk.explanation }}</p>
-                {% else %}
-                    <p class="risk-score low">0/100</p>
-                    <p>No risk calculated.</p>
-                {% endif %}
-            </div>
-        </div>
-
-        {% if steps %}
-        <div class="card" style="margin-top: 20px;">
-            <h2>Attack Path Evidence</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Step</th>
-                        <th>Source</th>
-                        <th>Action</th>
-                        <th>Target</th>
-                        <th>Evidence</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for step in steps %}
-                    <tr>
-                        <td style="color:#8b949e;">{{ loop.index }}</td>
-                        <td>{{ step.source.split(':')[-1] }}</td>
-                        <td><span class="tag">{{ step.action }}</span></td>
-                        <td>{{ step.target.split(':')[-1] }}</td>
-                        <td class="evidence">{{ step.evidence }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% endif %}
-
-        <div class="card" style="margin-top: 20px;">
-            <h2>Attack Path Graph</h2>
-            
-            <div class="legend-container">
-                <div class="legend-item">
-                    <span class="legend-color" style="background: #58a6ff;"></span> User
-                </div>
-                <div class="legend-item">
-                    <span class="legend-shape" style="background: #db6d28; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);"></span> Role
-                </div>
-                <div class="legend-item">
-                    <span class="legend-shape" style="background: #3fb950; border-radius: 2px;"></span> Resource
-                </div>
-                <div class="legend-item">
-                    <span class="legend-color" style="background: #f85149; border: 2px solid #fff;"></span> Attack Path Node
-                </div>
-                <div style="width: 20px;"></div> <!-- Spacer -->
-                <div class="legend-item">
-                    <span class="legend-line solid"></span> Standard Edge
-                </div>
-                <div class="legend-item">
-                    <span class="legend-line dashed"></span> Attack Path Edge
-                </div>
-            </div>
-
-            <p style="font-size: 0.85em; color: #8b949e; margin-bottom: 10px;">
-                <strong>Instructions:</strong> Drag nodes to rearrange. Scroll to zoom. Hover over nodes/edges for ARN details.
-            </p>
-
-            <iframe id="graph-frame" srcdoc="{{ graph_html | forceescape }}"></iframe>
-        </div>
-    </div>
-
-    <footer>
-        CloudJack v0.1.0 &mdash; Made by <a href="https://github.com/reallyngb" target="_blank">Joel Akinsanya</a>
-    </footer>
-</body>
-</html>
+      ]
+    }
+  },
+  "roles": {},
+  "resources": {
+    "prod-data": {
+      "name": "prod-data",
+      "arn": "arn:aws:s3:::prod-data",
+      "type": "S3Bucket",
+      "sensitivity": 5
+    }
+  }
+}

@@ -1,22 +1,77 @@
-﻿# CloudJack
-
-> **Status:** work in progress. This README is a Stage 3 stub; the full
-> README is written in Stage 10 once all features are implemented and tested.
-
-**CloudJack** is an offline AWS IAM identity attack-path simulator. It
-analyses synthetic snapshots of AWS IAM users, roles, policies, trust
-relationships and selected resources to identify plausible escalation paths
-from a starting identity to a high-value target - with evidence, risk scores,
-and least-privilege remediation.
-
-## Safety boundary
-
-CloudJack operates on **synthetic JSON snapshots only**. It never authenticates
-to AWS, never reads real credentials, and never makes changes to any cloud
-account. All findings are labelled by evidence tier
-(`theoretical` / `policy_supported` / `validated`) so that reviewers know
-exactly how strong each claim is.
-
-## Licence
-
-MIT - see `LICENSE`.
+{
+  "users": {
+    "intern": {
+      "name": "intern",
+      "arn": "arn:aws:iam::123456789012:user/intern",
+      "inline_policies": {
+        "intern-policy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": null,
+              "Effect": "Allow",
+              "Action": [
+                "iam:AttachUserPolicy"
+              ],
+              "NotAction": null,
+              "Resource": [
+                "*"
+              ],
+              "NotResource": null,
+              "Condition": null,
+              "Principal": null
+            },
+            {
+              "Sid": null,
+              "Effect": "Allow",
+              "Action": [
+                "s3:GetObject"
+              ],
+              "NotAction": null,
+              "Resource": [
+                "arn:aws:s3:::public-data/*"
+              ],
+              "NotResource": null,
+              "Condition": null,
+              "Principal": null
+            }
+          ]
+        }
+      },
+      "managed_policies": []
+    },
+    "admin": {
+      "name": "admin",
+      "arn": "arn:aws:iam::123456789012:user/admin",
+      "inline_policies": {},
+      "managed_policies": [
+        {
+          "Version": "2012-10-17",
+          "Statement": {
+            "Sid": null,
+            "Effect": "Deny",
+            "Action": [
+              "*"
+            ],
+            "NotAction": null,
+            "Resource": [
+              "*"
+            ],
+            "NotResource": null,
+            "Condition": null,
+            "Principal": null
+          }
+        }
+      ]
+    }
+  },
+  "roles": {},
+  "resources": {
+    "prod-data": {
+      "name": "prod-data",
+      "arn": "arn:aws:s3:::prod-data",
+      "type": "S3Bucket",
+      "sensitivity": 5
+    }
+  }
+}
