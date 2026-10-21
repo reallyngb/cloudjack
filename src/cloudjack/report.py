@@ -9,13 +9,7 @@ import networkx as nx
 
 
 def _read_text_with_fallback(path: Path) -> str:
-    """Read a text file, trying several common encodings in order.
-
-    This exists because Windows editors and PowerShell ``Set-Content`` may
-    produce UTF-16 or UTF-8-with-BOM files, both of which can trip up a naive
-    ``read_text(encoding='utf-8')`` call. Trying UTF-8 first, then UTF-8-with-
-    BOM, then UTF-16 covers all realistic cases without surprising the user.
-    """
+    """Read a text file, trying several common encodings in order."""
     for encoding in ("utf-8", "utf-8-sig", "utf-16"):
         try:
             return path.read_text(encoding=encoding)
@@ -43,19 +37,25 @@ def generate_html_report(
     paths: list[AttackPath],
     output_path: str
 ) -> None:
-    """Write an interactive HTML report."""
+    """Write an interactive HTML report.
+
+    The pyvis graph is rendered as a full standalone HTML document and then
+    embedded inside an iframe, so its JavaScript and CSS never collide with
+    the outer report styles. This removes a whole class of extraction bugs
+    (partial script blocks, missing div ids, canvas size collapse, pyvis theme
+    clashing with the outer dark theme).
+    """
     template_path = Path(__file__).parent / "web" / "template.html"
     template = Template(_read_text_with_fallback(template_path))
 
-    # Render the pyvis graph to a temporary HTML file
-    temp_graph_path = "temp_graph.html"
-    render_graph(graph, paths, temp_graph_path)
+    # Render the pyvis graph to a temporary standalone HTML file
+    output_dir = Path(output_path).parent
+    output_dir.mkdir(parents=True, exist_ok=True)
+    temp_graph_path = output_dir / "_graph_temp.html"
+    render_graph(graph, paths, str(temp_graph_path))
 
-    # Extract the graph body from pyvis output
-    graph_raw = _read_text_with_fallback(Path(temp_graph_path))
-    start = graph_raw.find('<div id="mynetwork"')
-    end = graph_raw.find('</script>', start) + len('</script>')
-    graph_html = graph_raw[start:end] if start >= 0 and end > start else ""
+    # Read the standalone pyvis document back and embed it in the iframe.
+    graph_html = _read_text_with_fallback(temp_graph_path)
 
     path = paths[0] if paths else None
 
@@ -65,11 +65,8 @@ def generate_html_report(
         confidence=path.confidence if path else "N/A",
         risk=path.risk if path else None,
         steps=path.steps if path else [],
-        graph_html=graph_html
+        graph_html=graph_html,
     )
 
-    # Write HTML as UTF-8 explicitly so repeated runs stay consistent
     Path(output_path).write_text(html_content, encoding="utf-8")
-
-    # Cleanup
-    Path(temp_graph_path).unlink(missing_ok=True)
+    temp_graph_path.unlink(missing_ok=True)

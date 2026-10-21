@@ -1,4 +1,4 @@
-"""Load and validate synthetic AWS IAM data."""
+﻿"""Load and validate synthetic AWS IAM data."""
 
 import json
 from pathlib import Path
@@ -12,13 +12,19 @@ class CloudJackLoadError(Exception):
 
 
 def load_account(filepath: str | Path) -> Account:
-    """Read a JSON file and return a validated Account object."""
+    """Read a JSON file and return a validated Account object.
+
+    The file is opened with ``utf-8-sig``, which is UTF-8 that transparently
+    strips a leading BOM if present. This makes CloudJack tolerant of files
+    written by Windows PowerShell's ``Set-Content -Encoding utf8`` (which
+    emits a BOM) as well as files written by editors or Git (which do not).
+    """
     path = Path(filepath)
     if not path.exists():
         raise CloudJackLoadError(f"File not found: {path}")
 
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, "r", encoding="utf-8-sig") as f:
             data = json.load(f)
     except json.JSONDecodeError as e:
         raise CloudJackLoadError(f"Invalid JSON in {path.name}: {e}") from e

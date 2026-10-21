@@ -1,13 +1,20 @@
-"""Core IAM policy evaluation logic."""
+﻿"""Core IAM policy evaluation logic."""
 
 import fnmatch
 from cloudjack.models import PolicyDocument, PolicyStatement
 
 
-def _matches(pattern: list[str], value: str) -> bool:
-    """Check if a value matches any pattern in the list, supporting wildcards."""
-    for p in pattern:
-        if fnmatch.fnmatch(value, p):
+def _matches(patterns: list[str], value: str) -> bool:
+    """Check if a value matches any pattern in the list, supporting wildcards.
+
+    ``fnmatch.fnmatch(name, pattern)`` is the correct argument order:
+    the value being tested is the first argument, and the pattern is the
+    second argument. AWS IAM wildcards (``*`` and ``?``) map directly onto
+    fnmatch wildcards, so ``logs:CreateLogGroup`` matches the pattern
+    ``logs:*`` via ``fnmatch("logs:CreateLogGroup", "logs:*")``.
+    """
+    for pattern in patterns:
+        if fnmatch.fnmatch(value, pattern):
             return True
     return False
 
@@ -32,7 +39,6 @@ def evaluate_statement(statement: PolicyStatement, action: str, resource: str) -
 
     # 3. Conditions (MVP: we explicitly skip evaluating them, but document it)
     if statement.Condition:
-        # For now, if there is a condition we don't understand, we assume it doesn't block us.
         pass
 
     return True
@@ -44,7 +50,7 @@ def is_allowed(policies: list[PolicyDocument], action: str, resource: str) -> bo
     Implements AWS policy evaluation logic: Explicit Deny > Allow > Default Deny.
     """
     allowed = False
-    
+
     for policy in policies:
         for statement in policy.get_statements():
             if evaluate_statement(statement, action, resource):

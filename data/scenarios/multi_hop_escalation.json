@@ -1,0 +1,126 @@
+{
+  "users": {
+    "intern": {
+      "name": "intern",
+      "arn": "arn:aws:iam::123456789012:user/intern",
+      "inline_policies": {
+        "intern-policy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": ["sts:AssumeRole"],
+              "Resource": "arn:aws:iam::123456789012:role/ec2-admin-role"
+            }
+          ]
+        }
+      }
+    },
+    "dev-ops-alice": {
+      "name": "dev-ops-alice",
+      "arn": "arn:aws:iam::123456789012:user/dev-ops-alice",
+      "inline_policies": {
+        "alice-policy": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": ["s3:GetObject", "s3:PutObject"],
+              "Resource": "arn:aws:s3:::dev-backups"
+            }
+          ]
+        }
+      }
+    },
+    "data-scientist-bob": {
+      "name": "data-scientist-bob",
+      "arn": "arn:aws:iam::123456789012:user/data-scientist-bob",
+      "inline_policies": {
+        "bob-policy": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": ["s3:GetObject"],
+              "Resource": "arn:aws:s3:::public-data"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "roles": {
+    "ec2-admin-role": {
+      "name": "ec2-admin-role",
+      "arn": "arn:aws:iam::123456789012:role/ec2-admin-role",
+      "trust_policy": {
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": {"AWS": "arn:aws:iam::123456789012:user/intern"},
+            "Action": "sts:AssumeRole"
+          }
+        ]
+      },
+      "inline_policies": {
+        "role-policy": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": ["s3:GetObject"],
+              "Resource": "arn:aws:s3:::prod-data"
+            }
+          ]
+        }
+      }
+    },
+    "lambda-exec-role": {
+      "name": "lambda-exec-role",
+      "arn": "arn:aws:iam::123456789012:role/lambda-exec-role",
+      "trust_policy": {
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": {"Service": "lambda.amazonaws.com"},
+            "Action": "sts:AssumeRole"
+          }
+        ]
+      },
+      "inline_policies": {
+        "lambda-policy": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": ["logs:CreateLogGroup", "logs:CreateLogStream"],
+              "Resource": "*"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "resources": {
+    "prod-data": {
+      "name": "prod-data (CRITICAL)",
+      "arn": "arn:aws:s3:::prod-data",
+      "type": "S3Bucket",
+      "sensitivity": 10
+    },
+    "public-data": {
+      "name": "public-data",
+      "arn": "arn:aws:s3:::public-data",
+      "type": "S3Bucket",
+      "sensitivity": 1
+    },
+    "dev-backups": {
+      "name": "dev-backups",
+      "arn": "arn:aws:s3:::dev-backups",
+      "type": "S3Bucket",
+      "sensitivity": 3
+    },
+    "cloudwatch-logs": {
+      "name": "cloudwatch-logs",
+      "arn": "arn:aws:logs:::log-group",
+      "type": "LogGroup",
+      "sensitivity": 2
+    }
+  }
+}

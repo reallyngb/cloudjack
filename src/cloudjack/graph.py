@@ -1,8 +1,16 @@
-"""Build a NetworkX graph of IAM identities and resources."""
+﻿"""Build a NetworkX graph of IAM identities and resources."""
 
+import fnmatch
 import networkx as nx
 from cloudjack.models import Account
 from cloudjack.policy import is_allowed
+
+
+def _get_resource_service(arn: str) -> str | None:
+    parts = arn.split(":")
+    if len(parts) < 3:
+        return None
+    return parts[2]
 
 
 def build_graph(account: Account) -> nx.DiGraph:
@@ -21,33 +29,60 @@ def build_graph(account: Account) -> nx.DiGraph:
 
     # 3. Connect identities to resources based on their policies
     all_identities = list(account.users.values()) + list(account.roles.values())
-    
+
     for identity in all_identities:
         policies = identity.get_all_policies()
-        
+
         for res_name, res in account.resources.items():
-            # Check if the identity can access the resource directly
-            if is_allowed(policies, "s3:GetObject", res.arn) or is_allowed(policies, "*", res.arn):
+            service = _get_resource_service(res.arn)
+            if not service:
+                continue
+
+            has_access = False
+            evidence = ""
+
+            # Manually scan policies to see if they grant ANY action for this service
+            for policy in policies:
+                for statement in policy.get_statements():
+                    if statement.Effect != "Allow":
+                        continue
+                    
+                    # Check if resource matches
+                    res_patterns = statement.Resource if isinstance(statement.Resource, list) else [statement.Resource]
+                    if not any(fnmatch.fnmatch(res.arn, p) for p in res_patterns):
+                        continue
+                        
+                    # Check if any action matches the service
+                    actions = statement.Action if isinstance(statement.Action, list) else [statement.Action]
+                    for action in actions:
+                        if action == "*" or action.startswith(f"{service}:"):
+                            has_access = True
+                            evidence = f"Policy allows {action} on {res.arn}"
+                            break
+                    if has_access:
+                        break
+                if has_access:
+                    break
+
+            if has_access:
                 G.add_edge(
-                    identity.arn, 
-                    res.arn, 
-                    action="access", 
-                    evidence=f"Policy allows access to {res.arn}"
+                    identity.arn,
+                    res.arn,
+                    action="access",
+                    evidence=evidence,
                 )
 
-    # 4. Connect identities to roles they can assume (via trust policy and sts:AssumeRole)
+    # 4. Connect identities to roles they can assume
     for user in account.users.values():
         for role_name, role in account.roles.items():
-            # Check if user has sts:AssumeRole
             if is_allowed(user.get_all_policies(), "sts:AssumeRole", role.arn):
-                # Check trust policy
                 trust_allowed = is_allowed([role.trust_policy], "sts:AssumeRole", user.arn)
                 if trust_allowed:
                     G.add_edge(
                         user.arn,
                         role.arn,
                         action="sts:AssumeRole",
-                        evidence=f"User policy allows AssumeRole and role trusts the user"
+                        evidence="User policy allows AssumeRole and role trusts the user",
                     )
 
     return G
