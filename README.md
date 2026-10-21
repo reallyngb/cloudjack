@@ -1,4 +1,4 @@
-# CloudJack
+﻿# CloudJack
 
 > **Status:** work in progress. This README is a Stage 3 stub; the full
 > README is written in Stage 10 once all features are implemented and tested.
