@@ -1,14 +1,19 @@
 """Command-line interface for CloudJack."""
 
+from pathlib import Path
+import json
 from typing import Annotated
 import typer
 from rich.console import Console
 from rich.table import Table
+from rich.panel import Panel
 
 from cloudjack import __version__
 from cloudjack.loader import load_account, CloudJackLoadError
 from cloudjack.graph import build_graph
 from cloudjack.paths import find_paths
+from cloudjack.risk import score_path
+from cloudjack.remediate import generate_remediated_account
 
 app = typer.Typer(
     name="cloudjack",
@@ -36,12 +41,13 @@ def main(
 
 
 @app.command()
-def find_path(
+def scan(
     file: Annotated[str, typer.Option("--file", "-f", help="Path to scenario JSON")],
     start: Annotated[str, typer.Option("--start", "-s", help="Starting identity ARN")],
     target: Annotated[str, typer.Option("--target", "-t", help="Target resource ARN")],
+    remediate: Annotated[bool, typer.Option("--remediate", "-r", help="Generate a remediated JSON file")] = False,
 ) -> None:
-    """Find an attack path from a start identity to a target resource."""
+    """Scan for attack paths, score risk, and optionally generate remediations."""
     try:
         account = load_account(file)
     except CloudJackLoadError as e:
@@ -58,7 +64,11 @@ def find_path(
     console.print(f"\n[bold green]Found {len(paths)} attack path(s)![/bold green]\n")
 
     for idx, path in enumerate(paths, 1):
-        console.print(f"[bold cyan]Path {idx}:[/bold cyan]")
+        path.risk = score_path(path, account)
+        
+        console.print(f"[bold cyan]Path {idx} (Risk: {path.risk.total}/100)[/bold cyan]")
+        console.print(f"[dim]{path.risk.explanation}[/dim]\n")
+        
         table = Table(show_header=True, header_style="bold magenta")
         table.add_column("Step")
         table.add_column("Source")
@@ -76,3 +86,10 @@ def find_path(
             )
         console.print(table)
         console.print(f"Confidence: [bold]{path.confidence}[/bold]\n")
+
+        if remediate:
+            rem_account = generate_remediated_account(account, path)
+            out_path = Path(file).with_name(Path(file).stem + "_remediated.json")
+            with open(out_path, "w", encoding="utf-8") as f:
+                json.dump(rem_account.model_dump(), f, indent=2)
+            console.print(Panel(f"Remediation written to [bold]{out_path}[/bold]\nRun the scan again against this file to verify the path is closed.", title="Remediation", border_style="green"))

@@ -80,7 +80,7 @@ class Account(BaseModel):
         return self.users.get(name) or self.roles.get(name)
 
 
-# --- Attack Path Models ---
+# --- Attack Path & Risk Models ---
 
 class AttackStep(BaseModel):
     """A single hop in an attack path."""
@@ -88,6 +88,16 @@ class AttackStep(BaseModel):
     action: str
     target: str
     evidence: str
+    enabled_by_policy: str | None = None
+
+
+class RiskScore(BaseModel):
+    """Transparent risk scoring for a path."""
+    total: int = Field(ge=0, le=100)
+    target_sensitivity: int
+    action_severity: int
+    path_length_penalty: int
+    explanation: str
 
 
 class AttackPath(BaseModel):
@@ -96,3 +106,12 @@ class AttackPath(BaseModel):
     target_resource: str
     steps: list[AttackStep]
     confidence: Literal["theoretical", "policy_supported", "validated"] = "policy_supported"
+    risk: RiskScore | None = None
+
+
+class Remediation(BaseModel):
+    """A suggested fix for a finding."""
+    description: str
+    affected_identity: str
+    original_action: str
+    suggested_action: str
