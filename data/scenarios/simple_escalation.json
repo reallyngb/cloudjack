@@ -1,0 +1,48 @@
+{
+  "users": {
+    "intern": {
+      "name": "intern",
+      "arn": "arn:aws:iam::123456789012:user/intern",
+      "inline_policies": {
+        "intern-policy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": ["iam:AttachUserPolicy"],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": ["s3:GetObject"],
+              "Resource": "arn:aws:s3:::public-data/*"
+            }
+          ]
+        }
+      }
+    },
+    "admin": {
+      "name": "admin",
+      "arn": "arn:aws:iam::123456789012:user/admin",
+      "managed_policies": [
+        {
+          "Version": "2012-10-17",
+          "Statement": {
+            "Effect": "Allow",
+            "Action": "*",
+            "Resource": "*"
+          }
+        }
+      ]
+    }
+  },
+  "roles": {},
+  "resources": {
+    "prod-data": {
+      "name": "prod-data",
+      "arn": "arn:aws:s3:::prod-data",
+      "type": "S3Bucket",
+      "sensitivity": 5
+    }
+  }
+}
