@@ -1,0 +1,9 @@
+# Development-only dependencies. Installed with `pip install -r requirements-dev.txt`.
+# Runtime dependencies come from requirements.txt.
+
+-r requirements.txt
+
+pytest>=8,<9
+pytest-cov>=5,<7
+ruff>=0.6,<1
+mypy>=1.11,<2

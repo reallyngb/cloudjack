@@ -1,0 +1,16 @@
+# CloudJack runtime dependencies.
+#
+# The ranges here mirror [project].dependencies in pyproject.toml.
+# `pip install -r requirements.txt` is the fastest way for a reviewer to
+# reproduce a working environment.
+#
+# Policy: pin to a compatible range (>=X.Y,<Z) rather than an exact patch,
+#         except for packages where we have observed an incompatibility.
+#         For a fully frozen environment, run `pip freeze > requirements.lock`.
+
+pydantic>=2.7,<3
+networkx>=3.3,<4
+typer>=0.12,<1
+rich>=13.7,<15
+pyvis>=0.3.2,<1
+jinja2>=3.1,<4
